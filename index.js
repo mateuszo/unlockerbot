@@ -17,7 +17,7 @@ app.set('port', (process.env.PORT || 5000));
 
 app.use(function (req, res, next) {
     console.log('received :' + req.method + ' request: ');
-    //console.log('request body', JSON.stringify(req.body));
+    console.log('request body', JSON.stringify(req.body));
     next();
 });
 
@@ -35,34 +35,7 @@ app.get('/webhook', function (req, res) {
 
 app.post('/webhook', function (req, res) {
     var messagingEvents = req.body.entry[0].messaging;
-    for(var i = 0; i < messagingEvents.length; i++ ) {
-        var event = messagingEvents[i];
-        var senderId = event.sender.id;
-        var text;
-        console.log('current state:', state.fsm.current);
-        //if the message is not empty
-        if(event.message && event.message.text){
-            text = event.message.text;
-            console.log('Received: ' + text + ' from: ' + senderId);
-            if(state.fsm.current === "init"){
-                state.fsm.hello(senderId, text);
-            } else {
-                state.fsm.back(senderId, text);
-            }
-        }
-        //if message is postback
-        else if (event.postback) {
-			text = JSON.stringify(event.postback);
-            console.log("Postback received: "+text+". Payload: " +event.postback.payload);
-			if(state.fsm.current === "wait_for_postback"){
-                switch(event.postback.payload){
-                    case 'barrier': state.fsm.barrier(senderId, text); break;
-                    case 'help': state.fsm.help(senderId, text) ; break;
-                    case 'ask': state.fsm.ask(senderId, text); break;
-                }
-            }
-   		}
-    }
+    messageEventController(messagingEvents);
     
     res.sendStatus(200);
 });
@@ -70,3 +43,50 @@ app.post('/webhook', function (req, res) {
 app.listen(app.get('port'), function () {
     console.log('Magic starts on port', app.get('port'));
 });
+
+function messageEventController(messagingEvents){
+   for(var i = 0; i < messagingEvents.length; i++ ) {
+        var event = messagingEvents[i];
+        var senderId = event.sender.id;
+        stateController(event,senderId);        
+    }
+};
+
+function stateController(event, senderId){
+    console.log('current state:', state.fsm.current);
+    var text = '';
+    //if the message is not empty
+    if(event.message && event.message.text){
+        text = event.message.text;
+        console.log('Text received: "' + text + '" from: ' + senderId);
+        
+        switch(state.fsm.current){
+           case 'init':  state.fsm.hello(senderId, text); break;
+           case 'helping': 
+                console.log("Need help " + text); 
+                state.fsm.back(senderId, text);
+                break;
+           case 'asking': 
+                console.log("The question is: " + text); 
+                state.fsm.back(senderId, text);
+                break;
+           case 'adding_barrier': 
+                console.log("New barrier: " + text); 
+                state.fsm.back(senderId, text);
+                break;
+           default: state.fsm.back(senderId, text);
+        }
+    }
+    //if message is postback
+    else if (event.postback) {
+		text = JSON.stringify(event.postback);
+        console.log('Postback received: ' + text + ' from: ' + senderId);
+		if(state.fsm.current === "wait_for_postback"){
+            switch(event.postback.payload){
+                case 'barrier': state.fsm.barrier(senderId, text); break;
+                case 'help': state.fsm.help(senderId, text) ; break;
+                case 'ask': state.fsm.ask(senderId, text); break;
+            }
+        }
+	}
+};
