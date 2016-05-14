@@ -1,5 +1,6 @@
 var StateMachine = require('javascript-state-machine');
 
+//TODO: multiuser state - seprate state for each user
 
 var State = function(sender) { 
   //this.sender = sender;
@@ -14,9 +15,9 @@ var State = function(sender) {
     ],
     callbacks: {
       onhello:    function(event, from, to, recipientId, msg) { sender.sendTemplate(recipientId, msg); },
-      onhelp:     function(event, from, to, recipientId, msg) { sender.sendMessage(recipientId, 'Potrzebujesz pomocy'); },
-      onask:      function(event, from, to, recipientId, msg) { sender.sendMessage(recipientId, 'Chcesz zadać pytanie'); },
-      onbarrier:  function(event, from, to, recipientId, msg) { sender.sendMessage(recipientId, 'Chcesz zgłosić barierę'); },
+      onhelp:     function(event, from, to, recipientId, msg) { sender.sendMessage(recipientId, 'Potrzebujesz pomocy. Podaj swoją lokalizację.'); },
+      onask:      function(event, from, to, recipientId, msg) { sender.sendMessage(recipientId, 'O co chcesz zapytać?'); },
+      onbarrier:  function(event, from, to, recipientId, msg) { sender.sendMessage(recipientId, 'Chcesz zgłosić barierę. Opisz barierę.'); },
       onback:     function(event, from, to, recipientId, msg) { sender.sendTemplate(recipientId, msg); },
     }
   });
