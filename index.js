@@ -1,8 +1,11 @@
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
-var request = require('request');
+//var request = require('request');
 var secret = require('./secret.js');
+var Sender = require('./sender.js').Sender;
+
+var sender = new Sender(secret.token);
 
 app.use(bodyParser.json()); // I've got a susspicion that it causes the webhook verification error
 
@@ -11,11 +14,11 @@ app.set('port', (process.env.PORT || 5000));
 app.use(function (req, res, next) {
     console.log('received :' + req.method + ' request');
     next();
-})
+});
 
 app.get('/', function (req, res) {
     res.send("Hello world");
-})
+});
 
 app.get('/webhook', function (req, res) {
     if (req.query['hub.verify_token'] === secret.verify_token) {
@@ -60,70 +63,9 @@ function messageRouter(senderId, text){
         //użytkownik ma pytanie
         msg = "Masz pytanie. Podaj treść pytania oraz lokalizację, której ono dotyczy.";
     } else if(text.indexOf("template") > 0){
-        sendTemplate(senderId, text);
+        sender.sendTemplate(senderId, text);
     } else {
-        msg = '[echo] ' + text;
+        msg = '[!echo!] ' + text;
     }
-    sendMessage(senderId, msg);
-}
-
-
-function sendMessage(sender, text){
-	var messageData = {
-		text: text
-	};
-    request({
-        method: 'POST',
-        url: 'https://graph.facebook.com/v2.6/me/messages',
-        qs: {access_token: secret.token},
-        json: {
-            recipient: {id: sender},
-            message: messageData,
-        }
-    }, function(error, response, body) {
-        if(error){
-            console.log('Error sending messages: ', error);
-        } else if(response.body.error){
-            console.log('Error: ', response.body.error);
-        }
-    });
-};
-
-function sendTemplate(sender, text){
-    var messageData = {
-        "attachment":{
-          "type":"template",
-          "payload":{
-            "template_type":"button",
-            "text":"What do you want to do next?",
-            "buttons":[
-              {
-                "type":"web_url",
-                "url":"https://petersapparel.parseapp.com",
-                "title":"Show Website"
-              },
-              {
-                "type":"postback",
-                "title":"Start Chatting",
-                "payload":"USER_DEFINED_PAYLOAD"
-              }
-            ]
-          }
-        }
-    };
-    request({
-        method: 'POST',
-        url: 'https://graph.facebook.com/v2.6/me/messages',
-        qs: {access_token: secret.token},
-        json: {
-            recipient: {id: sender},
-            message: messageData,
-        }
-    }, function(error, response, body) {
-        if(error){
-            console.log('Error sending messages: ', error);
-        } else if(response.body.error){
-            console.log('Error: ', response.body.error);
-        }
-    });
+    sender.sendMessage(senderId, msg);
 }
