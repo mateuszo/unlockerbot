@@ -4,8 +4,9 @@ var secret = require('./secret.js');
 var Sender = require('./sender.js').Sender;
 var State = require('./state.js').State;
 
+//initialize sender with token
 var sender = new Sender(secret.token);
-
+//initialize state with sender
 var state = new State(sender);
 console.log(state.fsm.current);
 
@@ -55,16 +56,27 @@ function messageEventController(messagingEvents){
 function stateController(event, senderId){
     console.log('current state:', state.fsm.current);
     var text = '';
-    //if the message is not empty
+    var postback = '';
+    //parsing message
     if(event.message && event.message.text){
         text = event.message.text;
         console.log('Text received: "' + text + '" from: ' + senderId);
-        
+    } else if (event.postback) {
+		text = JSON.stringify(event.postback);
+        console.log('Postback received: ' + text + ' from: ' + senderId);
+        postback = event.postback;
+    }
+    
+    if(!event.delivery){ //if it's not delivery confirmation
+        //controlling the state
         switch(state.fsm.current){
-           case 'init':  state.fsm.hello(senderId, text); break;
+           case 'init':  
+                state.fsm.hello(senderId, text); 
+                break;
            case 'helping': 
-                console.log("Need help " + text); 
-                state.fsm.back(senderId, text);
+                console.log("Need help " + text);
+                var location = event.message.attachments[0].payload.coordinates.lat + ", " + event.message.attachments[0].payload.coordinates.long;
+                state.fsm.sendHelp(senderId, location);
                 break;
            case 'asking': 
                 console.log("The question is: " + text); 
@@ -74,19 +86,22 @@ function stateController(event, senderId){
                 console.log("New barrier: " + text); 
                 state.fsm.back(senderId, text);
                 break;
+            case 'wait_for_postback':
+                switch(postback.payload){
+                    case 'barrier': 
+                        state.fsm.barrier(senderId, text); 
+                        break;
+                    case 'help': 
+                        state.fsm.help(senderId, text); 
+                        break;
+                    case 'ask': 
+                        state.fsm.ask(senderId, text); 
+                        break;
+                };
+                break;
            default: state.fsm.back(senderId, text);
         }
     }
-    //if message is postback
-    else if (event.postback) {
-		text = JSON.stringify(event.postback);
-        console.log('Postback received: ' + text + ' from: ' + senderId);
-		if(state.fsm.current === "wait_for_postback"){
-            switch(event.postback.payload){
-                case 'barrier': state.fsm.barrier(senderId, text); break;
-                case 'help': state.fsm.help(senderId, text) ; break;
-                case 'ask': state.fsm.ask(senderId, text); break;
-            }
-        }
-	}
 };
+
+
