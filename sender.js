@@ -3,7 +3,7 @@ var request = require('request');
 var Sender = function (access_token) {
 	this.access_token = access_token;
 	
-	this.sendMessage = function (sender, text){
+	this.sendMessage = function (recipientId, text){
 		var messageData = {
 			text: text
 		};
@@ -12,7 +12,7 @@ var Sender = function (access_token) {
 	        url: 'https://graph.facebook.com/v2.6/me/messages',
 	        qs: {access_token: this.access_token},
 	        json: {
-	            recipient: {id: sender},
+	            recipient: {id: recipientId},
 	            message: messageData,
 	        }
 	    }, function(error, response, body) {
@@ -24,23 +24,28 @@ var Sender = function (access_token) {
 	    });
 	};
 	
-	this.sendTemplate = function (sender, text){
+	this.sendTemplate = function (recipientId, text){
 	    var messageData = {
 	        "attachment":{
 	          "type":"template",
 	          "payload":{
 	            "template_type":"button",
-	            "text":"What do you want to do next?",
+	            "text":"Witaj!\nW czym mogę Ci pomóc?",
 	            "buttons":[
 	              {
-	                "type":"web_url",
-	                "url":"https://petersapparel.parseapp.com",
-	                "title":"Show Website"
+	                "type":"postback",
+	                "title":"Chcę zgłosić barierę",
+					"payload":"barrier"
 	              },
 	              {
 	                "type":"postback",
-	                "title":"Start Chatting",
-	                "payload":"USER_DEFINED_PAYLOAD"
+	                "title":"Potrzebuję pomocy",
+	                "payload":"help"
+	              },
+				  {
+	                "type":"postback",
+	                "title":"Mam pytanie",
+	                "payload":"ask"
 	              }
 	            ]
 	          }
@@ -51,7 +56,7 @@ var Sender = function (access_token) {
 	        url: 'https://graph.facebook.com/v2.6/me/messages',
 	        qs: {access_token: this.access_token},
 	        json: {
-	            recipient: {id: sender},
+	            recipient: {id: recipientId},
 	            message: messageData,
 	        }
 	    }, function(error, response, body) {
